@@ -1,0 +1,151 @@
+machine machine0 sees ctx0
+
+variables
+ user content chat active muted chatcontent
+
+invariants
+ @inv1 user ⊆ USER
+ @inv2 content ⊆ CONTENT
+ @inv3 chat ∈ user ↔ user    // chat sessions
+ @inv4 active ∈ user ⇸ user   // active chat session
+ @inv5 muted ∈ user ↔ user // muted sessions
+ @inv6 active ⊆ chat // active chat sessions
+ @inv7 muted ⊆ chat // muted chat sessions
+ @inv8 chatcontent ∈ content ↔ user × user     // users' chat content
+//
+events
+  event INITIALISATION
+  begin
+    @init1 user ≔  ∅
+    @init2 content ≔ ∅
+    @init3 chat ≔ ∅
+    @init4 active ≔ ∅
+    @init5 chatcontent ≔ ∅
+    @init6 muted ≔ ∅
+  end
+
+  event create_chat_session // US-01
+  any u1 u2
+  where
+    @grd1 u1 ∈ user ∧ u2 ∈ user
+    @grd2 u1 ↦   u2 ∉  chat
+  then
+    @act1 chat ≔ chat ∪ {u1 ↦ u2}
+  end
+
+  event select_chat // US-02
+  any u1 u2
+  where
+    @grd1 u1 ∈ user ∧ u2 ∈ user
+    @grd2 u1 ↦ u2 ∈ chat
+    @grd3 u1 ↦ u2 ∉ active
+  then
+    @act1 active(u1) ≔  u2
+  end
+
+  event chatting // US-03
+  any u1 u2 c
+  where
+    @grd1 u1 ∈ user ∧ u2 ∈ user
+    @grd2 c ∈ (CONTENT ∖ content)
+    @grd3 u1 ↦   u2 ∈ active
+  then
+    @act1 content ≔  content ∪ {c}
+    @act2 chatcontent ≔  chatcontent ∪ {c ↦ (u1 ↦ u2)}
+  end
+
+  event delete_content// US-04
+  any u1 u2 c
+  where
+    @grd1 u1 ∈ user ∧ u2 ∈ user
+    @grd2 c ∈ content
+    @grd3 u1 ↦   u2 ∈ chat
+    @grd4 c ↦   (u1 ↦ u2) ∈ chatcontent
+    @grd5 u1 ↦ u2 ∈ active
+  then
+  	 @act1 chatcontent ≔  {c} ⩤ (ran(chatcontent))
+    //@act1 chatcontent ≔  chatcontent ∖ {c ↦   (u1 ↦ u2)}
+  end
+
+  event clear_content // US-04
+  any c u
+  where
+  	@grd1 u ∈ user
+    @grd2 c ∈ content
+    @grd3
+  then
+    @act1 chatcontent ≔  {c} ⩤ (ran(chatcontent))
+    @act2 content ≔  content ∖ {c}
+  end
+
+  event delete_chat_session // US-05
+  any u1 u2
+  where
+    @grd1 u1 ∈ user ∧ u2 ∈ user
+    @grd2 u1 ↦   u2 ∈ chat
+    //@grd3 u1 ↦ u2 ∈ active
+  then
+    @act1 active ≔  active ∖ {u1 ↦ u2}
+    @act2 muted ≔  muted ∖ {u1 ↦ u2}
+    @act3 chat ≔  chat ∖ {u1 ↦ u2}
+    @act4 chatcontent ≔  chatcontent ⩥ {u1 ↦   u1}
+    //@act0 content ≔ content ∖
+    //@act1 chatcontent ≔  chatcontent ∖ (chatcontent ▷ {u1 ↦ u2})
+    //@act2 content ≔ content ∖ dom(chatcontent ▷ {u1 ↦ u2})
+  end
+
+  event mute_chat // US-06
+  any u1 u2
+  where
+    @grd1 u1 ∈ user ∧ u2 ∈ user
+    @grd2 u1 ↦ u2 ∈ chat
+    @grd3 u1 ↦   u2 ∉ muted
+  then
+    @act1 muted ≔ muted ∪ {u1 ↦ u2}
+  end
+
+  event unmute_chat  // US-07
+  any u1 u2
+  where
+    @grd1 u1 ∈ user ∧ u2 ∈ user
+    @grd2 u1 ↦ u2 ∈ chat
+    @grd3 u1 ↦   u2 ∈ muted
+  then
+    @act1 muted ≔ muted ∖ {u1 ↦ u2}
+  end
+
+  event broadcast  // US-08
+  any u1 uu c
+  where
+    @grd1 u1 ∈ user
+    @grd2 uu ⊆ user
+    @grd3 uu ≠ ∅
+    @grd4 c ∈(CONTENT ∖ content)
+  then
+    @act1 content ≔  content ∪ {c}
+    @act2 chat ≔ chat ∪ (({u1} × uu) ∖ (({u1}◁ chat) ▷  uu))
+    @act3 chatcontent ≔ chatcontent ∪ ({c} × ({u1} × uu))
+  end
+
+  event forward // US-09
+  any u1 uu c
+  where
+    @grd1 u1 ∈ user
+    @grd2 uu ⊆ user
+    @grd3 ({u1} × uu)⊆ chat
+    @grd4 c ∈ content
+  then
+    @act1 chatcontent ≔ chatcontent ∪ ({c} × ({u1} × uu))
+  end
+
+  event unselect_chat // US-10
+  any u1 u2
+  where
+    @grd1 u1 ∈ user ∧ u2 ∈ user
+    @grd2 u1 ↦ u2 ∈ chat
+    @grd3 u1 ↦ u2 ∈ active
+  then
+    @act1 active ≔ active ∖  {u1 ↦ u2}
+  end
+
+end
