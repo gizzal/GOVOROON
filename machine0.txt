@@ -49,6 +49,7 @@ events
     @grd1 u1 ∈ user ∧ u2 ∈ user
     @grd2 c ∈ (CONTENT ∖ content)
     @grd3 u1 ↦   u2 ∈ active
+    @grd4 u1 ↦   u2 ∉ muted 
   then
     @act1 content ≔  content ∪ {c}
     @act2 chatcontent ≔  chatcontent ∪ {c ↦ (u1 ↦ u2)}
