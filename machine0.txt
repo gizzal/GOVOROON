@@ -99,19 +99,23 @@ events
   where
     @grd1 u1 ∈ user ∧ u2 ∈ user
     @grd2 u1 ↦ u2 ∈ chat
-    @grd3 u1 ↦   u2 ∉ muted
+    @grd3 u1 ↦ u2 ∈ active
+    @grd4 u1 ↦   u2 ∉ muted
   then
     @act1 muted ≔ muted ∪ {u1 ↦ u2}
+    @act2 active ≔ active ∖ {u1 ↦ u2}
   end
 
-  event unmute_chat  // US-07
+ event unmute_chat  // US-07
   any u1 u2
   where
     @grd1 u1 ∈ user ∧ u2 ∈ user
     @grd2 u1 ↦ u2 ∈ chat
-    @grd3 u1 ↦   u2 ∈ muted
+    @grd3 u1 ↦  u2 ∉ active
+    @grd4 u1 ↦   u2 ∈ muted
   then
     @act1 muted ≔ muted ∖ {u1 ↦ u2}
+    @act2 active ≔ active ∪ {u1 ↦ u2} 
   end
 
   event broadcast  // US-08
